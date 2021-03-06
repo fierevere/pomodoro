@@ -1,12 +1,14 @@
 <?php
 /**
- * Plugin Name: POMOdoro Translation Cache
+ * Plugin Name: POMOdoro fast translation cache
  * Description: A cached translation override for WordPress.
- * Plugin URI: https://github.com/pressjitsu/pomodoro/
- *
- * Bakes and stows away expensive translation lookups
- *  as PHP hashtables. Fast and beautiful.
- *
+ * Plugin URI: https://github.com/fierevere/pomodoro
+ * Author: Pressjitsu Inc., Yui
+ * Version:     1.1
+ * License:     GPLv3
+ 
+ * Fork author: Yui
+ * 
  * GPL3
  * Pressjitsu, Inc.
  * https://pressjitsu.com
@@ -39,7 +41,7 @@ class MoCache_Translation {
 	/**
 	 * Cache file end marker.
 	 */
-	private $end = 'POMODORO_END_e867edfb-4a36-4643-8ad4-b95507068e44';
+	private $end = 'POMODORO_END_3b13639f-d5df-45b2-9475-f02cf07d21c7';
 
 	/**
 	 * Construct the main translation cache instance for a domain.
@@ -49,15 +51,25 @@ class MoCache_Translation {
 	 * @param Translations $merge The class in the same domain, we have overriden it.
 	 */
 	public function __construct( $mofile, $domain, $override ) {
+		$temp_dir = NULL;
 		$this->mofile = apply_filters( 'load_textdomain_mofile', $mofile, $domain );
 		$this->domain = $domain;
 		$this->override = $override;
-		$temp_dir = get_temp_dir();
-
-		$filename = md5( serialize( array( get_home_url(), $this->domain, $this->mofile ) ) );
+		
 		if ( defined( 'POMODORO_CACHE_DIR' ) && POMODORO_CACHE_DIR && wp_mkdir_p( POMODORO_CACHE_DIR ) ) {
 			$temp_dir = POMODORO_CACHE_DIR;
-		}
+		} else {
+		        $siteurl = $_SERVER['HTTP_HOST'];
+		        if ($siteurl) { // use prefixed tempdir
+		                      $temp_dir = sprintf('%s/pomodoro-%s', get_temp_dir(), md5 ( $siteurl ));
+		                      } 
+		        if ($temp_dir && wp_mkdir_p($temp_dir)) ; // use it
+		        else // fallback		
+                $temp_dir = get_temp_dir();
+			   }
+			   
+		$filename = md5( serialize( array( get_home_url(), $this->domain, $this->mofile ) ) );
+
 		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( $temp_dir ), $filename );
 
 		$mtime = filemtime( $this->mofile );
